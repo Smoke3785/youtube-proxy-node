@@ -1,12 +1,13 @@
-const { getKeysFromEnv } = require('../functions/dataFunctions');
-const Key = require('./Key');
-const fs = require('fs');
-const path = require('path');
+// Dependencies
 const express = require('express');
 const axios = require('axios');
 
-const PORT = process.env.PORT || 1897;
+// Misc
+const { getKeysFromEnv } = require('../functions/dataFunctions');
+const Key = require('./Key');
 
+// Constants
+const PORT = process.env.PORT || 1897;
 const googleApiKeyRegex = /AIza[0-9A-Za-z-_]{35}/;
 
 class MainProcess {
@@ -17,14 +18,13 @@ class MainProcess {
   };
 
   constructor() {
-    // singleton
     if (MainProcess.instance) {
       return MainProcess.instance;
     }
     MainProcess.instance = this;
 
-    this.keys = []; // This is a store of all keys.
     this.recursionCount = 0;
+    this.keys = [];
 
     this.init();
   }
@@ -39,17 +39,16 @@ class MainProcess {
     }
   }
 
-  //
   async init() {
-    this.restoreFromStorage();
     this.registerNewKeys();
-
     await this.testKeys();
 
+    // Set recursion limit.
     this.#recursionLimit = Math.max(this.keys.length * 2, this.#recursionLimit);
 
     this.startServer();
     this.listen();
+
     console.log(
       `MainProcess initialized. ${this.getValidKeys().length}/${
         this.keys.length
@@ -62,6 +61,7 @@ class MainProcess {
   }
 
   listen() {
+    // Logger
     this.app.use('*', (req, res, next) => {
       let time = new Date().toLocaleTimeString();
       let url = req.originalUrl;
@@ -73,8 +73,8 @@ class MainProcess {
       next();
     });
 
+    // Basic authentication
     this.app.use('*', (req, res, next) => {
-      // Get key from GET request.
       const key = req.query.key;
 
       if (!key) {
@@ -94,7 +94,7 @@ class MainProcess {
         return;
       }
 
-      // If valid, strip key from request.
+      // If valid, strip our API key from request.
       delete req.query.key;
 
       // Continue.
@@ -127,34 +127,25 @@ class MainProcess {
 
   getRandomValidKey() {
     let validKeys = this.getValidKeys();
-
     return validKeys[Math.floor(Math.random() * validKeys.length)];
   }
 
   getRandomInvalidKey() {
     let invalidKeys = this.getInvalidKeys();
-
-    let randomIdx = Math.floor(Math.random() * invalidKeys.length);
-
-    return invalidKeys[randomIdx];
+    return invalidKeys[Math.floor(Math.random() * invalidKeys.length)];
   }
 
   attemptForwardRequest(req) {
     return new Promise(async (_resolve, _reject) => {
-      // I redefine reject/resolve just to make sure the recursionCount is reset when they're called.
-      function reject(...args) {
+      const reject = (...args) => {
         this.recursionCount = 0;
         return _reject(...args);
-      }
+      };
 
-      function resolve(...args) {
+      const resolve = (...args) => {
         this.recursionCount = 0;
         return _resolve(...args);
-      }
-
-      // There might be a better way to do this - this just binds the class `this` context to the functions.
-      reject = reject.bind(this);
-      resolve = resolve.bind(this);
+      };
 
       if (this.recursionCount > this.#recursionLimit) {
         reject({
@@ -199,9 +190,6 @@ class MainProcess {
         // Try again.
         return this.attemptForwardRequest(req).catch(reject);
       }
-
-      // If we're here, something went wrong.
-      reject(this.#dfe);
     });
   }
 
@@ -221,18 +209,8 @@ class MainProcess {
     this.app = express();
 
     this.app.listen(PORT, () => {
-      console.log(`YouTube proxy listening at http://localhost:${PORT}`);
+      console.log(`YouTube proxy listening on port: ${PORT}`);
     });
-  }
-
-  restoreFromStorage() {
-    // Restore keys from storage.
-    // const data = JSON.parse(
-    //   fs.readFileSync(path.resolve(process.cwd(), 'data/latest.json'), 'utf8')
-    // );
-    // for (let [key, lastFailure] of data) {
-    //   this.addValidKey(new Key(key, lastFailure));
-    // }
   }
 
   addValidKey(key) {
@@ -240,10 +218,6 @@ class MainProcess {
     if (googleApiKeyRegex.test(key?.value)) {
       this.keys.push(key);
     }
-  }
-
-  get keysData() {
-    return;
   }
 }
 

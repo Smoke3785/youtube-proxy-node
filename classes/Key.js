@@ -1,20 +1,14 @@
-// const mainProcess = new (require('./MainProcess.js'))();
 const axios = require('axios');
 
 const DAY_IN_MS = 86400000;
 
-// http://localhost:1897/youtube/v3/search?type=video&channelId=UC4QobU6STFB0P71PMvOGN5A&part=id&order=date&maxResults=1&key=xJa0D7I5u93199NC4ii6Ccgw
-
 function censorApiKey(key) {
   return key.slice(0, 8) + '...' + key.slice(-6);
 }
-
 class Key {
   constructor(value, lastFailure) {
     this.value = value;
     this.lastFailure = lastFailure || null;
-
-    this.test();
   }
 
   fail() {

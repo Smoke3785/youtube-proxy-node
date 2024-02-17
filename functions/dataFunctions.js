@@ -1,7 +1,7 @@
 function getKeysFromEnv() {
   let envObject = process.env;
 
-  return Object.entries(envObject).filter(([key, value]) => {
+  return Object.entries(envObject).filter(([key]) => {
     return key.startsWith('YT_');
   });
 }
