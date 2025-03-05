@@ -1,10 +1,10 @@
 // Dependencies
-const express = require('express');
-const axios = require('axios');
+const express = require("express");
+const axios = require("axios");
 
 // Misc
-const { getKeysFromEnv } = require('../functions/dataFunctions');
-const Key = require('./Key');
+const { getKeysFromEnv } = require("../functions/dataFunctions");
+const Key = require("./Key");
 
 // Constants
 const PORT = process.env.PORT || 1897;
@@ -14,7 +14,7 @@ class MainProcess {
   #recursionLimit = 13;
   #dfe = {
     code: 500,
-    message: 'Unknown error.',
+    message: "Unknown error.",
   };
 
   constructor() {
@@ -61,8 +61,13 @@ class MainProcess {
   }
 
   listen() {
+    // Health endpoint without authentication
+    this.app.get("/health", (req, res) => {
+      res.status(200).send("Server Online");
+    });
+
     // Logger
-    this.app.use('*', (req, res, next) => {
+    this.app.use("*", (req, res, next) => {
       let time = new Date().toLocaleTimeString();
       let url = req.originalUrl;
       let method = req.method;
@@ -74,23 +79,23 @@ class MainProcess {
     });
 
     // Basic authentication
-    this.app.use('*', (req, res, next) => {
+    this.app.use("*", (req, res, next) => {
       const key = req.query.key;
 
       if (!key) {
-        res.status(400).send('No key provided.');
+        res.status(400).send("No key provided.");
         return;
       }
 
       // Check if key is valid.
       if (key !== process.env.EXT_API_KEY) {
-        res.status(401).send('Invalid key.');
+        res.status(401).send("Invalid key.");
         return;
       }
 
       // Do we have any valid keys?
       if (this.allKeysExpired()) {
-        res.status(403).send('All keys are expired.');
+        res.status(403).send("All keys are expired.");
         return;
       }
 
@@ -101,19 +106,19 @@ class MainProcess {
       next();
     });
 
-    this.app.get('/healthcheck', (req, res) => {
-      res.send('OK');
+    this.app.get("/healthcheck", (req, res) => {
+      res.send("OK");
     });
 
-    this.app.get('/validKeysCount', (req, res) => {
+    this.app.get("/validKeysCount", (req, res) => {
       res.send(this.getValidKeys().length.toString());
     });
 
-    this.app.get('/invalidKeysCount', (req, res) => {
+    this.app.get("/invalidKeysCount", (req, res) => {
       res.send(this.getInvalidKeys().length.toString());
     });
 
-    this.app.get('/youtube/v3/*', async (req, res) => {
+    this.app.get("/youtube/v3/*", async (req, res) => {
       try {
         let response = await this.attemptForwardRequest(req);
         return res.send(response);
@@ -150,7 +155,7 @@ class MainProcess {
       if (this.recursionCount > this.#recursionLimit) {
         reject({
           code: 500,
-          message: 'Recursion limit reached without resolution.',
+          message: "Recursion limit reached without resolution.",
         });
         return;
       }
@@ -159,7 +164,7 @@ class MainProcess {
 
       // Check if we have any valid keys.
       if (this.allKeysExpired()) {
-        reject({ code: 403, message: 'All keys are expired.' });
+        reject({ code: 403, message: "All keys are expired." });
         return;
       }
 
@@ -179,7 +184,7 @@ class MainProcess {
         resolve(response.data);
       } catch (error) {
         // If the error is not quota related, return it to the client.
-        if (!JSON.stringify(error?.response?.data?.error).includes('quota')) {
+        if (!JSON.stringify(error?.response?.data?.error).includes("quota")) {
           reject(error?.response?.data?.error || this.#dfe);
           return;
         }
